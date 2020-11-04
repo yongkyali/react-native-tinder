@@ -1,14 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import {
-  Button,
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Animated,
-} from 'react-native';
+import {Button, View, Text} from 'react-native';
 import axios from 'axios';
-import {PanGestureHandler, State} from 'react-native-gesture-handler';
 
 import Card from './Card';
 
@@ -25,7 +17,12 @@ function Matcher() {
         },
       })
       .then((res) => {
-        setProfiles(res.data.photos);
+        const _profiles = res.data.photos.map((item) => {
+          item.isSwiped = false;
+          return item;
+        });
+
+        setProfiles(_profiles);
       });
   }
 
@@ -41,117 +38,27 @@ function Matcher() {
     }
   }, [profiles]);
 
-  const translationX = new Animated.Value(0);
-  const translationY = new Animated.Value(0);
-  const width = Dimensions.get('window').width;
-  const rotationZ = translationX.interpolate({
-    inputRange: [-width / 2, width / 2],
-    outputRange: ['15deg', '-15deg'],
-    extrapolate: 'clamp',
-  });
-  const likeOpacity = translationX.interpolate({
-    inputRange: [-214 / 4, 0],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const nopeOpacity = translationX.interpolate({
-    inputRange: [0, 214 / 4],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  const springMovement = () => {
-    Animated.spring(translationX, {
-      toValue: 0,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-
-    Animated.spring(translationY, {
-      toValue: 0,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const cardStyle = {
-    height: '100%',
-    transform: [
-      {translateX: translationX},
-      {translateY: translationY},
-      {rotateZ: rotationZ},
-    ],
-  };
-
-  const onGestureEvent = Animated.event(
-    [
-      {
-        nativeEvent: {
-          translationX: translationX,
-          translationY: translationY,
-        },
-      },
-    ],
-    {useNativeDriver: true},
-  );
-
-  function onPanGestureMovement(event) {
-    if (event.nativeEvent.state === State.END) {
-      const {translationX} = event.nativeEvent;
-      let direction;
-      if (translationX < 0) {
-        // If user swipe to the left
-        direction = 'left';
-      } else {
-        // If user swipe to the right
-        direction = 'right';
+  function onDelete(id) {
+    const _newState = profiles.map((item) => {
+      // console.log(item);
+      if (item.id === id) {
+        // console.log(item);
+        item.isSwiped = true;
+        console.log(item);
       }
-      if (direction === 'left') {
-        // Calculate if the user fully commited to the swiping act
-        if (width / 3 <= translationX * -1) {
-          // Fully commited, run the act
-          console.log('you just completed me!');
-          swiped('like', profiles[0]);
-        } else {
-          // Maybe a misclick / not fully commited
-          console.log('more power!');
-          springMovement();
-        }
-      } else {
-        // Calculate if the user fully commited to the swiping act
-        if (translationX >= width / 3) {
-          console.log('you just completed me!');
-          swiped('nope', profiles[0]);
-        } else {
-          // Maybe a misclick / not fully commited
-          console.log('more power!');
-          springMovement();
-        }
-      }
-    }
-  }
 
-  function swiped(action, profile) {
-    console.log(action, profile);
-    if (action === 'like') {
-      Animated.spring(translationX, {
-        toValue: -600,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.spring(translationX, {
-        toValue: 600,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
-    }
+      return item;
+    });
+    setProfiles(_newState);
+    // const _newState = profiles.filter((item, index) => {
+    //   console.log(index);
+    //   if (item.id !== id) {
+    //     return index;
+    //   }
+    // });
+    // console.log(_newState);
 
-    setTimeout(() => {
-      setProfiles(() => {
-        const newState = [...profiles];
-        return newState.slice(1);
-      });
-    }, 300);
+    // console.log(event);
   }
 
   return (
@@ -173,24 +80,21 @@ function Matcher() {
               position: 'relative',
               flex: 1,
             }}>
-            {(() => {
-              let _profiles = [...profiles].reverse();
-              let arr = [];
-              _profiles.map((data, index) => {
-                if (index < _profiles.length - 1) {
-                  arr.push(<Card key={index} data={data} />);
+            {profiles
+              .map((data, index) => {
+                console.log(data);
+                if (data.isSwiped === false) {
+                  return (
+                    <Card
+                      key={index}
+                      id={data.id}
+                      data={data}
+                      onDelete={onDelete}
+                    />
+                  );
                 }
-              });
-              return arr;
-            })()}
-
-            <PanGestureHandler
-              onGestureEvent={onGestureEvent}
-              onHandlerStateChange={onPanGestureMovement}>
-              <Animated.View style={[cardStyle, {zIndex: 1000}]}>
-                <Card data={profiles[0]} {...{likeOpacity, nopeOpacity}} />
-              </Animated.View>
-            </PanGestureHandler>
+              })
+              .reverse()}
           </View>
           <View
             style={{
@@ -215,7 +119,5 @@ function Matcher() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({});
 
 export default Matcher;
