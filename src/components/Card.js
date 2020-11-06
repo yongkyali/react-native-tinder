@@ -12,9 +12,6 @@ import {PanGestureHandler, State} from 'react-native-gesture-handler';
 
 function Card(props) {
   const photo = props.data;
-  useEffect(() => {
-    console.log(props);
-  }, []);
 
   const translationX = new Animated.Value(0);
   const translationY = new Animated.Value(0);
@@ -87,7 +84,6 @@ function Card(props) {
           console.log('you just completed me!');
           onSwipe('like');
         } else {
-          // Maybe a misclick / not fully commited
           console.log('more power!');
           springMovement();
         }
@@ -97,7 +93,6 @@ function Card(props) {
           console.log('you just completed me!');
           onSwipe('nope');
         } else {
-          // Maybe a misclick / not fully commited
           console.log('more power!');
           springMovement();
         }
@@ -111,18 +106,16 @@ function Card(props) {
         toValue: -600,
         duration: 50,
         useNativeDriver: true,
-      }).start(() => {
-        props.onDelete(props.id);
-      });
+      }).start(() => props.onDelete(props.id, props.index));
     } else {
       Animated.spring(translationX, {
         toValue: 600,
         duration: 50,
         useNativeDriver: true,
-      }).start(() => {
-        props.onDelete(props.id);
-      });
+      }).start(() => props.onDelete(props.id, props.index));
     }
+
+    
   }
 
   return (

@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {Button, View, Text} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, View, Text, Alert, Platform, ToastAndroid } from 'react-native';
 import axios from 'axios';
 
 import Card from './Card';
@@ -7,22 +7,28 @@ import Card from './Card';
 function Matcher() {
   const [isReady, setIsReady] = useState(false);
   const [profiles, setProfiles] = useState([]);
+  const nextUrl = useRef('https://api.pexels.com/v1/search?query=people')
 
   function getPeople() {
+    console.log(nextUrl.current)
     axios
-      .get('https://api.pexels.com/v1/search?query=people', {
+      .get(nextUrl.current, {
         headers: {
           Authorization:
             '563492ad6f91700001000001f76390e5f9b54cf782a968062f63ce28',
         },
       })
       .then((res) => {
-        const _profiles = res.data.photos.map((item) => {
-          item.isSwiped = false;
-          return item;
+        console.log(res.data.next_page)
+        const items = res.data.photos;
+        items.forEach(element => {
+          element.isSwiped = false;
         });
 
-        setProfiles(_profiles);
+        nextUrl.current = res.data.next_page
+        console.log(profiles.length, profiles)
+        console.log(items.length, items)
+        setProfiles([...profiles, ...items])
       });
   }
 
@@ -38,40 +44,40 @@ function Matcher() {
     }
   }, [profiles]);
 
-  function onDelete(id) {
-    const _newState = profiles.map((item) => {
-      // console.log(item);
-      if (item.id === id) {
-        // console.log(item);
-        item.isSwiped = true;
-        console.log(item);
+  function onDelete(data, index) {
+    setProfiles(() => {
+      profiles.forEach(element => {
+        if (data.id === element.id) {
+          element.isSwiped = true
+        }
+      })
+
+      return profiles
+    })
+
+    const sum = profiles.length - index
+    if (sum === 5) {
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('fetching data for you!', ToastAndroid.SHORT)
+      } else {
+        Alert.alert('fetching data for you!', ToastAndroid.SHORT)
       }
 
-      return item;
-    });
-    setProfiles(_newState);
-    // const _newState = profiles.filter((item, index) => {
-    //   console.log(index);
-    //   if (item.id !== id) {
-    //     return index;
-    //   }
-    // });
-    // console.log(_newState);
-
-    // console.log(event);
+      getPeople()
+    }
   }
 
   return (
-    <View style={{height: '100%'}}>
+    <View style={{ height: '100%' }}>
       {isReady === true ? (
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           <View
             style={{
               height: 50,
               justifyContent: 'center',
               borderBottomWidth: 0.5,
             }}>
-            <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
+            <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
               Top navigation will be here
             </Text>
           </View>
@@ -82,14 +88,14 @@ function Matcher() {
             }}>
             {profiles
               .map((data, index) => {
-                console.log(data);
                 if (data.isSwiped === false) {
                   return (
                     <Card
                       key={index}
                       id={data.id}
+                      index={index}
                       data={data}
-                      onDelete={onDelete}
+                      onDelete={() => onDelete(data, index)}
                     />
                   );
                 }
@@ -102,20 +108,19 @@ function Matcher() {
               justifyContent: 'center',
               borderTopWidth: 0.5,
             }}>
-            {/* <Text style={{textAlign: 'center'}}>Actions will be put here</Text> */}
-            <Button
+            <Text style={{ textAlign: 'center' }}>Bottom action bar here</Text>
+            {/* <Button
               title="Check photo check"
               onPress={() => {
-                // console.log(translationX);
               }}
-            />
+            /> */}
           </View>
         </View>
       ) : (
-        <View>
-          <Text>Loading data...</Text>
-        </View>
-      )}
+          <View>
+            <Text>Loading data...</Text>
+          </View>
+        )}
     </View>
   );
 }
